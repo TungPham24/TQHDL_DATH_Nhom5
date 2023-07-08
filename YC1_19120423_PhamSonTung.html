@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DATH_Nhóm 5</title>
+  <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  <style>
+    /* Thêm các CSS tùy chỉnh cho trang */
+    
+
+    #chart {
+      margin: 0 auto;
+    }
+
+    /* Thêm các CSS tùy chỉnh cho biểu đồ */
+    .axis text {
+      font: 10px sans-serif;
+    }
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+    .dot {
+      stroke: #000;
+    }
+    .filter-menu {
+      margin-top: 10px;
+    }
+    .filter-menu label {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="filter-menu radio">
+                  <label>Lọc:</label>
+                  <div><input type="radio" name="filter" value="Tất cả" checked><label>Tất cả</label></div>
+                  <div><input type="radio" name="filter" value="Khách hàng còn ở lại"><label>Khách hàng còn ở lại</label></div>
+                  <div><input type="radio" name="filter" value="Khách hàng đã rời đi"><label>Khách hàng đã rời đi</label></div>
+                </div>
+
+            </div>
+            <div class="col-lg-8">
+                
+                
+                <div id="chart-container">
+                  <svg id="chart"></svg>
+                </div>
+                <h4>Yêu cầu 1
+                    <small>Sự tương quan giữa quyết định rời đi của khách hàng với số tiền giao dịch và số giao dịch của họ</small>
+                </h4>
+            </div>
+        </div>
+    </div>
+
+  
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    // Kích thước của biểu đồ
+    const margin = { top: 30, right: 20, bottom: 40, left: 50 };
+    const width = 700 - margin.left - margin.right;
+    const height = 700 - margin.top - margin.bottom;
+
+    // Tạo biểu đồ
+    const svg = d3.select("#chart")
+      .attr("width", width+ margin.left + margin.right)
+      .attr("height", height+ margin.top + margin.bottom);
+
+    // Đọc dữ liệu từ URL
+    d3.csv("https://raw.githubusercontent.com/TungPham24/PTDLUD_Data/main/BankChurners.csv").then(data => {
+      // Chuyển đổi dữ liệu thành số
+      data.forEach(d => {
+        d.Total_Trans_Amt = +d.Total_Trans_Amt;
+        d.Total_Trans_Ct = +d.Total_Trans_Ct;
+      });
+
+      // Tạo các scale cho trục x và y
+      const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.Total_Trans_Ct))
+        .range([margin.left, width - margin.right]);
+
+      const yScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.Total_Trans_Amt))
+        .range([height - margin.bottom, margin.top]);
+
+      // Tạo các scale cho màu sắc
+      const colorScale = d3.scaleOrdinal()
+        .domain(["Existing Customer", "Attrited Customer"])
+        .range(["#4CFF33", "#FFBE33"]);
+
+      // Vẽ điểm trên biểu đồ
+      let dots = svg.selectAll(".dot")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("class", "dot")
+        .attr("r", 3.5)
+        .attr("cx", d => xScale(d.Total_Trans_Ct))
+        .attr("cy", d => yScale(d.Total_Trans_Amt))
+        .style("fill", d => colorScale(d.Attrition_Flag));
+
+      // Tạo trục x
+      svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", `translate(0, ${height - margin.bottom})`)
+        .call(d3.axisBottom(xScale))
+        .append("text")
+        .attr("class", "axis-label")
+        .attr("x", width - margin.right)
+        .attr("y", -6)
+        .style("text-anchor", "end")
+        .text("Số giao dịch");
+
+      // Tạo trục y
+      svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", `translate(${margin.left}, 0)`)
+        .call(d3.axisLeft(yScale))
+        .append("text")
+        .attr("class", "axis-label")
+        .attr("transform", "rotate(-90)")
+       .attr("x", 0)
+        .attr("y", 10)
+        .attr("dy", "0.71em")
+        .style("text-anchor", "end")
+        .text("Số tiền giao dịch");
+
+
+        svg.append("text")
+            .attr("text-anchor", "end")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -margin.left+60)
+            .attr("x", -margin.top - height/2 + margin.bottom)
+            .text("Số tiền giao dịch")
+        svg.append("text")
+            .attr("text-anchor", "end")
+            .attr("x", width / 2 + margin.left - margin.right)
+            .attr("y", height + margin.top -40)
+            .text("Số giao dịch");      
+      // Chú giải
+      const legendX = width / 2;
+      const legendY = height - margin.bottom + 40;
+
+      const legend = svg.append("g")
+        .attr("class", "legend")
+        .attr("transform", `translate(${legendX}, ${legendY})`)
+      const legendWidth = 200;
+      const legendItemWidth = 50;
+
+      
+      legend.append("text")
+        .attr("x", legendX - 60)
+        .attr("y", 15)
+        .attr("dy", ".35em")
+        .text("Chú giải");
+      legend.append("circle")
+        .attr("r", 5)
+        .attr("cx",  legendX - 110)
+        .attr("cy", 35)
+        .style("fill", colorScale("Existing Customer"));
+      
+      legend.append("text")
+        .attr("x", legendX - 100)
+        .attr("y", 35)
+        .attr("dy", ".35em")
+        .text("Khách hàng còn ở lại");
+
+      legend.append("circle")
+        .attr("r", 5)
+        .attr("cx", legendX - 110)
+        .attr("cy", 50)
+        .style("fill", colorScale("Attrited Customer"));
+
+      legend.append("text")
+        .attr("x", legendX - 100)
+        .attr("y", 50)
+        .attr("dy", ".35em")
+        .text("Khách hàng đã rời đi");
+
+      // Lọc dữ liệu dựa trên tùy chọn lọc
+      d3.selectAll("input[name='filter']").on("change", function () {
+        const selectedValue = this.value;
+        let filteredData = data;
+        if (selectedValue === "Khách hàng còn ở lại") {
+          filteredData = data.filter(d => d.Attrition_Flag === "Existing Customer");
+        } else if (selectedValue === "Khách hàng đã rời đi") {
+          filteredData = data.filter(d => d.Attrition_Flag === "Attrited Customer");
+        }
+        updateChart(filteredData);
+      });
+
+      // Hàm cập nhật biểu đồ khi thay đổi lọc
+      function updateChart(filteredData) {
+        dots = svg.selectAll(".dot")
+          .data(filteredData, d => d.Customer_Name);
+
+        dots.enter()
+          .append("circle")
+          .attr("class", "dot")
+          .merge(dots)
+          .attr("r", 3.5)
+          .attr("cx", d => xScale(d.Total_Trans_Ct))
+          .attr("cy", d => yScale(d.Total_Trans_Amt))
+          .style("fill", d => colorScale(d.Attrition_Flag));
+
+        dots.exit().remove();
+      }
+
+      // Animation cho các điểm khi di chuột qua
+      dots.on("mouseover", function () {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("r", 6)
+          .style("fill", "#FF3333");
+      }).on("mouseout", function () {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("r", 3.5)
+          .style("fill", d => colorScale(d.Attrition_Flag));
+      });
+    }).catch(error => {
+      console.log("Lỗi khi đọc dữ liệu: ", error);
+    });
+  </script>
+</body>
+</html>

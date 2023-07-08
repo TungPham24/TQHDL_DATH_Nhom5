@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Biểu đồ Pie Chart</title>
+  <style>
+    /* Thêm các CSS tùy chỉnh cho biểu đồ */
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      margin-right: 5px;
+    }
+    .tooltip {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 8px;
+      font-size: 14px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="margin: 100px; display: flex; align-items: center; justify-content: center;">Tỷ lệ phân bố độ tuổi trong tập dữ liệu</h1>
+  <div id="wrap" style="display: flex;">
+    <svg id="chart"></svg>
+    <div id="legend" style="margin: 100px;"></div>
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    // Kích thước của biểu đồ
+    const width = 800;
+    const height = 600;
+    const radius = Math.min(width, height) / 2;
+
+    // Tạo biểu đồ
+    const svg = d3.select("#chart")
+      .attr("width", width)
+      .attr("height", height)
+      .append("g")
+      .attr("transform", `translate(${width / 2},${height / 2})`);
+
+    // Tạo legend
+    const legend = d3.select("#legend");
+
+    // Đọc dữ liệu từ URL
+    d3.csv("https://raw.githubusercontent.com/TungPham24/PTDLUD_Data/main/BankChurners.csv").then(data => {
+      // Tính tổng số khách hàng trong mỗi độ tuổi
+      let count0to20 = 0;
+      let count20to30 = 0;
+      let count30to40 = 0;
+      let count40to50 = 0;
+      let count50to60 = 0;
+      let countAbove60 = 0;
+
+      data.forEach(d => {
+        const age = +d.Customer_Age;
+        if (age >= 0 && age < 20) {
+          count0to20++;
+        } else if (age >= 20 && age < 30) {
+          count20to30++;
+        } else if (age >= 30 && age < 40) {
+          count30to40++;
+        } else if (age >= 40 && age < 50) {
+          count40to50++;
+        } else if (age >= 50 && age < 60) {
+          count50to60++;
+        } else {
+          countAbove60++;
+        }
+      });
+
+      // Tạo dữ liệu cho pie chart
+      const ageData = [
+        { age: "0 đến 20", count: count0to20 },
+        { age: "20 đến 30", count: count20to30 },
+        { age: "30 đến 40", count: count30to40 },
+        { age: "40 đến 50", count: count40to50 },
+        { age: "50 đến 60", count: count50to60 },
+        { age: "Trên 60", count: countAbove60 }
+      ];
+
+      // Tạo pie generator
+      const pie = d3.pie()
+        .value(d => d.count)
+        .sort(null);
+
+      // Tạo arc generator
+      const arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius);
+
+      // Tạo màu sắc cho các cung pie
+      const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+      // Vẽ pie chart
+      const arcs = svg.selectAll(".arc")
+        .data(pie(ageData))
+        .enter().append("g")
+        .attr("class", "arc");
+
+      arcs.append("path")
+        .attr("d", arc)
+        .attr("fill", (d, i) => colorScale(i))
+        .on("mouseover", (event, d) => {
+          const percentage = ((d.data.count / d3.sum(ageData, d => d.count)) * 100).toFixed(2);
+
+          tooltip
+            .html(`<strong>${percentage}%</strong>`)
+            .style("left", `${event.pageX}px`)
+            .style("top", `${event.pageY}px`)
+            .style("opacity", 1);
+        })
+        .on("mouseout", () => {
+          tooltip.style("opacity", 0);
+        });
+
+      // Tạo chú thích
+      const legendItems = legend.selectAll(".legend-item")
+        .data(ageData)
+        .enter().append("div")
+        .attr("class", "legend-item")
+        .style("display", "flex");
+
+      legendItems.append("div")
+        .attr("class", "legend-color")
+        .style("background-color", (d, i) => colorScale(i))
+        .style("margin", "5px");
+
+      legendItems.append("div")
+        .text(d => d.age)
+        .style("margin", "5px");
+
+      // Tạo tooltip
+      const tooltip = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+    }).catch(error => {
+      console.log("Lỗi khi đọc dữ liệu: ", error);
+    });
+  </script>
+</body>
+</html>

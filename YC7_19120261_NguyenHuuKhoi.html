@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bar Chart</title>
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <style>
+    .bar {
+      fill: steelblue;
+    }
+    .bar:hover {
+      fill: orange;
+    }
+    .label {
+      font-family: sans-serif;
+      font-size: 12px;
+      fill: white;
+      text-anchor: middle;
+    }
+    .axis-label {
+      font-family: sans-serif;
+      font-size: 14px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    // Set up the dimensions and margins
+    var margin = { top: 20, right: 20, bottom: 50, left: 60 };
+    var width = 600 - margin.left - margin.right;
+    var height = 400 - margin.top - margin.bottom;
+
+    // Fetch the data from the provided CSV file
+    d3.csv('https://raw.githubusercontent.com/khoihuu0301/PTDL/main/BC_New.csv').then(function (data) {
+      // Data processing to calculate the average transfer amount per transfer by Income_Category
+      var averageTransferAmounts = d3.rollups(
+        data,
+        v => d3.mean(v, d => +d.Total_Trans_Amt / +d.Total_Trans_Ct),
+        d => d.Income_Category
+      );
+
+      // Create an SVG container
+      var svg = d3
+        .select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      // Create scales for the x and y axes
+      var xScale = d3.scaleBand().domain(averageTransferAmounts.map(d => d[0])).range([0, width]).padding(0.1);
+      var yScale = d3.scaleLinear().domain([0, d3.max(averageTransferAmounts, d => d[1])]).range([height, 0]);
+
+      // Create the x and y axes
+      svg
+        .append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(xScale));
+
+      svg.append("g").call(d3.axisLeft(yScale));
+
+      // Add x-axis label
+      svg
+        .append("text")
+        .attr("class", "axis-label")
+        .attr("x", width / 2)
+        .attr("y", height + margin.bottom / 2)
+        .attr("text-anchor", "middle")
+        .text("Income Category");
+
+      // Add y-axis label
+      svg
+        .append("text")
+        .attr("class", "axis-label")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", -margin.left)
+        .attr("dy", "1em")
+        .attr("text-anchor", "middle")
+        .text("Average Transfer Amount per Transfer");
+
+      // Create the bar chart
+      svg
+        .selectAll(".bar")
+        .data(averageTransferAmounts)
+        .enter()
+        .append("rect")
+        .attr("class", "bar")
+        .attr("x", d => xScale(d[0]))
+        .attr("width", xScale.bandwidth())
+        .attr("y", d => yScale(d[1]))
+        .attr("height", d => height - yScale(d[1]));
+
+      // Add labels to the bars
+      svg
+        .selectAll(".label")
+        .data(averageTransferAmounts)
+        .enter()
+        .append("text")
+        .attr("class", "label")
+        .attr("x", d => xScale(d[0]) + xScale.bandwidth() / 2)
+        .attr("y", d => yScale(d[1]) - 5)
+        .attr("text-anchor", "middle")
+        .text(d => d3.format(".2f")(d[1]));
+    });
+  </script>
+</body>
+</html>
